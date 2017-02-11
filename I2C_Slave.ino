@@ -134,6 +134,7 @@ void receiveEvent(int howMany)
       I2C_recBuf[i] = Wire.read ();
     }  // end of for loop
   CMD = strtol(I2C_recBuf, &pEnd, 10);
+  Serial.print("@Slave:receiveEvent(), CMD = ");
   Serial.println(CMD);
 }
 
@@ -142,6 +143,8 @@ void requestEvent()
 // command to identify which info has been received by receiveEvent and
 // placed into CMD variable.
 {
+//  Serial.print("@Slave:requestEvent(), CMD = ");
+//  Serial.println(CMD, 10);
   switch (CMD)
   {
     case CMD_READ_A0: sendSensor(A0); break;  // send A0 value
@@ -155,6 +158,8 @@ void requestEvent()
       for (byte i = 0; i <= len; i++) {
         Wire.write(I2C_sendBuf[i]); // Chug out one char at a time.
       }  // end of for loop
+      Serial.print("@Slave:requestEvent(), Response sent = ");
+      Serial.println(I2C_sendBuf);
       break;   // send our ID
     }   
   }  // end of switch
