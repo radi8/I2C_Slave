@@ -152,12 +152,14 @@ void requestEvent()
     case CMD_READ_A2: sendSensor(A2); break;  // send A2 value
     case CMD_READ_D2: Wire.write(digitalRead(2)); break;   // send D2 value
     case CMD_READ_D3: Wire.write(digitalRead(3)); break;   // send D3 value
-    case CMD_ID: {
+    case CMD_ID: {     
       strcpy(I2C_sendBuf, "Slave address = 9");
+/*      
       int len = strlen(I2C_sendBuf);
       for (byte i = 0; i <= len; i++) {
         Wire.write(I2C_sendBuf[i]); // Chug out one char at a time.
       }  // end of for loop
+*/    Wire.write(I2C_sendBuf);  
       Serial.print("@Slave:requestEvent(), Response sent = ");
       Serial.println(I2C_sendBuf);
       break;   // send our ID
