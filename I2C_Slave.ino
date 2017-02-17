@@ -45,10 +45,8 @@ enum { // These commands come from tcp client via ESP01
   CMD_READ_A0,
   CMD_READ_A1,
   CMD_READ_A2,
-  CMD_D2_HI,
-  CMD_D2_LO,
-  CMD_D3_HI,
-  CMD_D3_LO,
+  CMD_READ_D2,
+  CMD_READ_D3,
   CMD_SET_RLY1_ON,
   CMD_SET_RLY1_OFF,
   CMD_SET_RLY2_ON,
@@ -89,8 +87,10 @@ void setup() {
   Serial.println("Started slave at address 9");
 
   Wire.begin(I2CAddressESPWifi); // Set up as slave
-  Wire.onReceive(receiveEvent);
-  Wire.onRequest(requestEvent);
+  Wire.onReceive(receiveEvent);// Registers a function to be called when a slave
+                               // device receives a transmission from a master.
+  Wire.onRequest(requestEvent);// Register a function to be called when a
+                               // master requests data from this slave device.
 }
 
 // We run through the loop checking if a command has been received and processing
@@ -135,7 +135,7 @@ void loop() {
   sendSensor(A0, _volts);
   sendSensor(A1, _amps);
   */
-  sendStatus();
+//  sendStatus();
   delay(1);
 }
 
