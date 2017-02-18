@@ -11,6 +11,7 @@
 
 #include <Wire.h>
 
+#define _DEBUG
 #define LED 13
 #define TUNE_OUTPUT 13
 #define BUTTON 10
@@ -23,20 +24,6 @@ boolean last_state = HIGH;
 char I2C_sendBuf[32];
 char I2C_recBuf[32];
 long CMD = 0; //Commands received are placed in this variable
-
-enum { // Send these to tcp client via ESP01
-  _pwrSwitch = 1,
-  _tuneState,
-  _volts,
-  _amps,
-  _analog2,
-  _digital2,
-  _digital3,
-  _rly1,
-  _rly2,
-  _antenna,
-  _message
-};
 
 enum { // These commands come from tcp client via ESP01
   CMD_PWR_ON = 1,
@@ -54,7 +41,21 @@ enum { // These commands come from tcp client via ESP01
   CMD_SET_LED_HI,
   CMD_SET_LED_LO,
   CMD_STATUS,
-  CMD_ID
+  CMD_ID // Always keep this last
+};
+
+enum { // Send these to tcp client via ESP01
+  _pwrSwitch = CMD_ID + 1,
+  _tuneState,
+  _volts,
+  _amps,
+  _analog2,
+  _digital2,
+  _digital3,
+  _rly1,
+  _rly2,
+  _antenna,
+  _message
 };
 
 struct {
@@ -154,13 +155,18 @@ void receiveEvent(int howMany)
 {
   char * pEnd;
 
+  memset(I2C_recBuf, NULL, strlen(I2C_recBuf)); // Null the I2C Receive Buffer
   for (byte i = 0; i < howMany; i++)
   {
     I2C_recBuf[i] = Wire.read ();
   }  // end of for loop
   CMD = strtol(I2C_recBuf, &pEnd, 10);
+#ifdef _DEBUG  
   Serial.print("@Slave:receiveEvent(), CMD = ");
   Serial.println(CMD);
+  Serial.print("@Slave:receiveEvent(), I2C_recBuf = ");
+  Serial.println(I2C_recBuf);
+#endif
 }
 
 void requestEvent()
@@ -179,8 +185,12 @@ void requestEvent()
 //    case CMD_READ_D3: Wire.write(digitalRead(3)); break;   // send D3 value
     case CMD_STATUS: sendStatus();
     case CMD_ID: {
-        memset(I2C_sendBuf, '\0', 32); // Clear the I2C Send Buffer
+        memset(I2C_sendBuf, NULL, strlen(I2C_sendBuf)); // Clear the I2C Send Buffer
+        Serial.print("I2C_sendBuf[20] at start =  "); // debug
+        Serial.println(I2C_sendBuf[20], 16); // debug
         strcpy(I2C_sendBuf, "Slave address = 9");
+        Serial.print("I2C_sendBuf[20] at finish = "); // debug
+        Serial.println(I2C_sendBuf[20], 16); // debug
     /*
         int len = strlen(I2C_sendBuf);
         I2C_sendBuf[len] = '\0';
