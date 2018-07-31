@@ -11,7 +11,11 @@
 
 #include <Wire.h>
 
+#define _DEBUG
 #define LED 13
+#define A0 14
+#define A1 15
+#define A2 16
 #define TUNE_OUTPUT 13
 #define BUTTON 10
 
@@ -23,20 +27,6 @@ boolean last_state = HIGH;
 char I2C_sendBuf[32];
 char I2C_recBuf[32];
 long CMD = 0; //Commands received are placed in this variable
-
-enum { // Send these to tcp client via ESP01
-  _pwrSwitch = 1,
-  _tuneState,
-  _volts,
-  _amps,
-  _analog2,
-  _digital2,
-  _digital3,
-  _rly1,
-  _rly2,
-  _antenna,
-  _message
-};
 
 enum { // These commands come from tcp client via ESP01
   CMD_PWR_ON = 1,
@@ -54,7 +44,21 @@ enum { // These commands come from tcp client via ESP01
   CMD_SET_LED_HI,
   CMD_SET_LED_LO,
   CMD_STATUS,
-  CMD_ID
+  CMD_ID // Always keep this last
+};
+
+enum { // Send these to tcp client via ESP01
+  _pwrSwitch = CMD_ID + 1,
+  _tuneState,
+  _volts,
+  _amps,
+  _analog2,
+  _digital2,
+  _digital3,
+  _rly1,
+  _rly2,
+  _antenna,
+  _message
 };
 
 struct {
@@ -102,6 +106,8 @@ void loop() {
     switch (CMD) {
       case CMD_TUNE:
         // Send a button press to autotuner
+        Serial.print("Main loop, command received = ");  // debug
+        Serial.println(CMD, DEC);        // debug
         digitalWrite(LED, HIGH);
         delay(500);
         digitalWrite(LED, LOW);
@@ -119,8 +125,6 @@ void loop() {
         digitalWrite(9, LOW);
         break;
     }
-    Serial.print("@Main loop: command received = ");  // debug
-    Serial.println(CMD, DEC);        // debug
     CMD = 0;
   }
   /*
@@ -135,6 +139,7 @@ void loop() {
   sendSensor(A0, _volts);
   sendSensor(A1, _amps);
   */
+//  sendStatus();
   delay(1);
 }
 
@@ -153,13 +158,18 @@ void receiveEvent(int howMany)
 {
   char * pEnd;
 
+  memset(I2C_recBuf, NULL, strlen(I2C_recBuf)); // Null the I2C Receive Buffer
   for (byte i = 0; i < howMany; i++)
   {
     I2C_recBuf[i] = Wire.read ();
   }  // end of for loop
   CMD = strtol(I2C_recBuf, &pEnd, 10);
+#ifdef _DEBUG  
   Serial.print("@Slave:receiveEvent(), CMD = ");
   Serial.println(CMD);
+//  Serial.print("@Slave:receiveEvent(), I2C_recBuf = ");
+//  Serial.println(I2C_recBuf);
+#endif
 }
 
 void requestEvent()
@@ -174,12 +184,19 @@ void requestEvent()
     case CMD_READ_A0: sendSensor(A0, _volts); break;  // send A0 value
     case CMD_READ_A1: sendSensor(A1, _amps); break;  // send A1 value
     case CMD_READ_A2: sendSensor(A2, _analog2); break;  // send A2 value
-//    case CMD_READ_D2: Wire.write(digitalRead(2)); break;   // send D2 value
-//    case CMD_READ_D3: Wire.write(digitalRead(3)); break;   // send D3 value
+    case CMD_READ_D2: sendSensor(2, _digital2); break;   // send D2 value
+    case CMD_READ_D3: sendSensor(3, _digital3); break;   // send D3 value
 //    case CMD_STATUS: sendStatus();
     case CMD_ID: {
-        memset(I2C_sendBuf, '\0', 32); // Clear the I2C Send Buffer
-        strcpy(I2C_sendBuf, "Slave address = 9");
+        memset(I2C_sendBuf, NULL, strlen(I2C_sendBuf)); // Clear the I2C Send Buffer
+//        Serial.print("I2C_sendBuf[20] at start =  "); // debug
+//        Serial.println(I2C_sendBuf[20], 16); // debug
+        sprintf(I2C_sendBuf, "%d Slave address = 9", _message);
+//        strcpy(I2C_sendBuf, " Slave address = 9");
+#ifdef _DEBUG
+  Serial.print("@Slave::requestEvent() I2C_sendBuf = ");
+  Serial.println(I2C_sendBuf);
+#endif        
     /*
         int len = strlen(I2C_sendBuf);
         I2C_sendBuf[len] = '\0';
@@ -199,21 +216,44 @@ void requestEvent()
 void sendSensor (const byte which, uint8_t cmd)
 // The integer value of the analog port is converted to a string and sent.
 {
-  int val = analogRead (which);
-//  uint8_t len;
+  int val = 0;
+  uint8_t len;
 
+  if(which < A0) {
+    val = digitalRead (which);
+  } else {
+    val = analogRead (which);
+  }
   memset(I2C_sendBuf, '\0', 32); // Clear the I2C Send Buffer
   sprintf(I2C_sendBuf, "%d %d", cmd, val);
-//  len = strlen(I2C_sendBuf);
-/*  
+  len = strlen(I2C_sendBuf);
+  
   I2C_sendBuf[len] = '\0';
   for (byte i = 0; i <= len; i++)
   {
     Wire.write(I2C_sendBuf[i]); // Chug out one char at a time.
   }  // end of for loop
 
-*/
-  Wire.write(I2C_sendBuf);
+
+//  Wire.write(I2C_sendBuf);
 //  Serial.println(I2C_sendBuf); // debug
 }  // end of sendSensor
+/*
+void sendStatus()
+{
+  int x;
 
+  memset(I2C_sendBuf, '\0', 32); // Clear the I2C Send Buffer
+  sendSensor(analogRead(A0), _volts); // send A0 value
+  delay(5);
+  sendSensor(analogRead(A1), _amps); // send A1 value
+  delay(5);
+  sendSensor(analogRead(A2), _analog2); // send A2 value
+  x = digitalRead(2); // send D2 value
+  sprintf(I2C_sendBuf, "%d %d", _digital2, x);
+  Wire.write(I2C_sendBuf);
+  x = digitalRead(3); // send D2 value
+  sprintf(I2C_sendBuf, "%d %d", _digital3, x);
+  Wire.write(I2C_sendBuf);
+}
+*/
