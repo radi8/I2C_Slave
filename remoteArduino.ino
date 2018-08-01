@@ -28,19 +28,29 @@ char I2C_sendBuf[32];
 char I2C_recBuf[32];
 long CMD = 0; //Commands received are placed in this variable
 
-enum { // These commands come from tcp client via ESP01
-  CMD_PWR_ON = 1,
+enum { // These commands come from tcp client via ESP01 I2C connection
+  CMD_PWR_ON = 1, //Start the enum from 1
   CMD_PWR_OFF,
-  CMD_TUNE,
-  CMD_READ_A0,
+  CMD_RLY1_ON,    // HiQSDR
+  CMD_RLY1_OFF,
+  CMD_RLY2_ON,    //HermesLite
+  CMD_RLY2_OFF,
+  CMD_RLY3_ON,    // Linear
+  CMD_RLY3_OFF,
+  CMD_RLY4_ON,    // Tuner
+  CMD_RLY4_OFF,   
+  CMD_TUNE_DN,
+  CMD_TUNE_UP,
+  CMD_RADIO_0,    // No antenna selected
+  CMD_RADIO_1,
+  CMD_RADIO_2,
+  CMD_RADIO_3,
+  CMD_RADIO_4,
+  CMD_READ_A0,    // Shack voltage
   CMD_READ_A1,
   CMD_READ_A2,
-  CMD_READ_D2,
+  CMD_READ_D2,    // Digital input via opto-coupler
   CMD_READ_D3,
-  CMD_SET_RLY1_ON,
-  CMD_SET_RLY1_OFF,
-  CMD_SET_RLY2_ON,
-  CMD_SET_RLY2_OFF,
   CMD_SET_LED_HI,
   CMD_SET_LED_LO,
   CMD_STATUS,
@@ -104,26 +114,70 @@ void loop() {
 
   if (CMD) {
     switch (CMD) {
-      case CMD_TUNE:
+      case CMD_TUNE_DN:
         // Send a button press to autotuner
         Serial.print("Main loop, command received = ");  // debug
         Serial.println(CMD, DEC);        // debug
         digitalWrite(LED, HIGH);
-        delay(500);
+        break;
+      case CMD_TUNE_UP:
+        // Send a button release to autotuner
         digitalWrite(LED, LOW);
         break;
-      case CMD_SET_RLY1_ON:
+      case CMD_RLY1_ON:
         digitalWrite(8, HIGH);
         break;
-      case CMD_SET_RLY1_OFF:
+      case CMD_RLY1_OFF:
         digitalWrite(8, LOW);
         break;
-      case CMD_SET_RLY2_ON:
+      case CMD_RLY2_ON:
         digitalWrite(9, HIGH);
         break;
-      case CMD_SET_RLY2_OFF:
+      case CMD_RLY2_OFF:
         digitalWrite(9, LOW);
         break;
+      case CMD_RLY3_ON:
+        digitalWrite(2, HIGH);
+        break;
+      case CMD_RLY3_OFF:
+        digitalWrite(2, LOW);
+        break;
+      case CMD_RLY4_ON:
+        digitalWrite(3, HIGH);
+        break;
+      case CMD_RLY4_OFF:
+        digitalWrite(3, LOW);
+        break;
+      case CMD_RADIO_0: // No antenna selected
+      digitalWrite(4, LOW); // J13 - 4
+      digitalWrite(5, LOW); // J13 - 3
+      digitalWrite(6, LOW); // J13 - 2
+      digitalWrite(7, LOW); // J13 - 1
+      break;
+    case CMD_RADIO_1:
+      digitalWrite(5, LOW);
+      digitalWrite(6, LOW);
+      digitalWrite(7, LOW);
+      digitalWrite(4, HIGH);
+      break;
+    case CMD_RADIO_2:
+      digitalWrite(4, LOW);
+      digitalWrite(6, LOW);
+      digitalWrite(7, LOW);
+      digitalWrite(5, HIGH);
+      break;
+    case CMD_RADIO_3:
+      digitalWrite(4, LOW);
+      digitalWrite(5, LOW);
+      digitalWrite(7, LOW);
+      digitalWrite(6, HIGH);
+      break;
+    case CMD_RADIO_4:
+      digitalWrite(4, LOW);
+      digitalWrite(5, LOW);
+      digitalWrite(6, LOW);      
+      digitalWrite(7, HIGH);
+      break;
     }
     CMD = 0;
   }
