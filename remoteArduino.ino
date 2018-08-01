@@ -96,6 +96,28 @@ void setup() {
   pinMode (A2, INPUT);
   digitalWrite (A2, HIGH);  // enable pull-up
 
+  // Set the output pins. These default to LOW so set high so they
+  // can be low active
+  digitalWrite (2, HIGH);
+  digitalWrite (3, HIGH);
+  digitalWrite (4, HIGH);
+  digitalWrite (5, HIGH);
+  digitalWrite (6, HIGH);
+  digitalWrite (7, HIGH);
+  
+  
+  
+  pinMode (2, OUTPUT);
+  pinMode (3, OUTPUT);
+  pinMode (4, OUTPUT);
+  pinMode (5, OUTPUT);
+  pinMode (6, OUTPUT);
+  pinMode (7, OUTPUT);
+  pinMode (8, OUTPUT);
+  digitalWrite (8, HIGH);
+  pinMode (9, OUTPUT);
+  digitalWrite (9, HIGH);
+
 
   Serial.begin(115200);
   Serial.println("Started slave at address 9");
@@ -125,28 +147,28 @@ void loop() {
         digitalWrite(LED, LOW);
         break;
       case CMD_RLY1_ON:
-        digitalWrite(8, HIGH);
-        break;
-      case CMD_RLY1_OFF:
         digitalWrite(8, LOW);
         break;
-      case CMD_RLY2_ON:
-        digitalWrite(9, HIGH);
+      case CMD_RLY1_OFF:
+        digitalWrite(8, HIGH);
         break;
-      case CMD_RLY2_OFF:
+      case CMD_RLY2_ON:
         digitalWrite(9, LOW);
         break;
-      case CMD_RLY3_ON:
-        digitalWrite(2, HIGH);
+      case CMD_RLY2_OFF:
+        digitalWrite(9, HIGH);
         break;
-      case CMD_RLY3_OFF:
+      case CMD_RLY3_ON:
         digitalWrite(2, LOW);
         break;
+      case CMD_RLY3_OFF:
+        digitalWrite(2, HIGH);
+        break;
       case CMD_RLY4_ON:
-        digitalWrite(3, HIGH);
+        digitalWrite(3, LOW);
         break;
       case CMD_RLY4_OFF:
-        digitalWrite(3, LOW);
+        digitalWrite(3, HIGH);
         break;
       case CMD_RADIO_0: // No antenna selected
       digitalWrite(4, LOW); // J13 - 4
