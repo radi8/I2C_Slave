@@ -21,12 +21,13 @@
 
 #define I2CAddressESPWifi 9
 
-
+/***************** Global Variables *****************/
 boolean last_state = HIGH;
 
 char I2C_sendBuf[32];
 char I2C_recBuf[32];
-long CMD = 0; //Commands received are placed in this variable
+long CMD = 0;       // Commands received are placed in this variable
+long LAST_CMD = 0;  // The last command received is hels here
 
 enum { // These commands come from tcp client via ESP01 I2C connection
   CMD_PWR_ON = 1, //Start the enum from 1
@@ -135,7 +136,8 @@ void setup() {
 void loop() {
 
   if (CMD) {
-    switch (CMD) {
+    LAST_CMD = CMD;
+    switch (LAST_CMD) {
       case CMD_TUNE_DN:
         // Send a button press to autotuner
         Serial.print("Main loop, command received = ");  // debug
@@ -147,28 +149,28 @@ void loop() {
         digitalWrite(LED, LOW);
         break;
       case CMD_RLY1_ON:
-        digitalWrite(8, LOW);
+        digitalWrite(8, LOW);  // J11 pin 3
         break;
       case CMD_RLY1_OFF:
         digitalWrite(8, HIGH);
         break;
       case CMD_RLY2_ON:
-        digitalWrite(9, LOW);
+        digitalWrite(9, LOW);  // J11 pin 2
         break;
       case CMD_RLY2_OFF:
         digitalWrite(9, HIGH);
         break;
       case CMD_RLY3_ON:
-        digitalWrite(2, LOW);
+        digitalWrite(2, HIGH);  // Opto-Coupler
         break;
       case CMD_RLY3_OFF:
-        digitalWrite(2, HIGH);
+        digitalWrite(2, LOW);
         break;
       case CMD_RLY4_ON:
-        digitalWrite(3, LOW);
+        digitalWrite(3, HIGH);  // Opto-Coupler
         break;
       case CMD_RLY4_OFF:
-        digitalWrite(3, HIGH);
+        digitalWrite(3, LOW);
         break;
       case CMD_RADIO_0: // No antenna selected
       digitalWrite(4, LOW); // J13 - 4
@@ -201,7 +203,7 @@ void loop() {
       digitalWrite(7, HIGH);
       break;
     }
-    CMD = 0;
+    if (LAST_CMD == CMD) CMD = 0; // Test to see if CMD changed while processing switch case.
   }
   /*
   // Now poll all the inputs
