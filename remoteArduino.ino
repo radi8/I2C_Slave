@@ -174,28 +174,28 @@ void loop() {
       digitalWrite(7, LOW); // J13 - 1
       break;
     case CMD_ANT_1:
+      digitalWrite(4, LOW);
       digitalWrite(5, LOW);
       digitalWrite(6, LOW);
-      digitalWrite(7, LOW);
-      digitalWrite(4, HIGH);
+      digitalWrite(7, HIGH);
       break;
     case CMD_ANT_2:
-      digitalWrite(4, LOW);
-      digitalWrite(6, LOW);
-      digitalWrite(7, LOW);
-      digitalWrite(5, HIGH);
-      break;
-    case CMD_ANT_3:
       digitalWrite(4, LOW);
       digitalWrite(5, LOW);
       digitalWrite(7, LOW);
       digitalWrite(6, HIGH);
       break;
-    case CMD_ANT_4:
+    case CMD_ANT_3:
       digitalWrite(4, LOW);
+      digitalWrite(6, LOW);
+      digitalWrite(7, LOW);
+      digitalWrite(5, HIGH);
+      break;
+    case CMD_ANT_4:
       digitalWrite(5, LOW);
-      digitalWrite(6, LOW);      
-      digitalWrite(7, HIGH);
+      digitalWrite(6, LOW);
+      digitalWrite(7, LOW);      
+      digitalWrite(4, HIGH);
       break;
     }
     if (LAST_CMD == CMD) CMD = 0; // Test to see if CMD changed while processing switch case.
