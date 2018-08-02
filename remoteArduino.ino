@@ -42,11 +42,11 @@ enum { // These commands come from tcp client via ESP01 I2C connection
   CMD_RLY4_OFF,   
   CMD_TUNE_DN,
   CMD_TUNE_UP,
-  CMD_RADIO_0,    // No antenna selected
-  CMD_RADIO_1,
-  CMD_RADIO_2,
-  CMD_RADIO_3,
-  CMD_RADIO_4,
+  CMD_ANT_0,    // No antenna selected
+  CMD_ANT_1,
+  CMD_ANT_2,
+  CMD_ANT_3,
+  CMD_ANT_4,
   CMD_READ_A0,    // Shack voltage
   CMD_READ_A1,
   CMD_READ_A2,
@@ -172,31 +172,31 @@ void loop() {
       case CMD_RLY4_OFF:
         digitalWrite(3, LOW);
         break;
-      case CMD_RADIO_0: // No antenna selected
+      case CMD_ANT_0: // No antenna selected
       digitalWrite(4, LOW); // J13 - 4
       digitalWrite(5, LOW); // J13 - 3
       digitalWrite(6, LOW); // J13 - 2
       digitalWrite(7, LOW); // J13 - 1
       break;
-    case CMD_RADIO_1:
+    case CMD_ANT_1:
       digitalWrite(5, LOW);
       digitalWrite(6, LOW);
       digitalWrite(7, LOW);
       digitalWrite(4, HIGH);
       break;
-    case CMD_RADIO_2:
+    case CMD_ANT_2:
       digitalWrite(4, LOW);
       digitalWrite(6, LOW);
       digitalWrite(7, LOW);
       digitalWrite(5, HIGH);
       break;
-    case CMD_RADIO_3:
+    case CMD_ANT_3:
       digitalWrite(4, LOW);
       digitalWrite(5, LOW);
       digitalWrite(7, LOW);
       digitalWrite(6, HIGH);
       break;
-    case CMD_RADIO_4:
+    case CMD_ANT_4:
       digitalWrite(4, LOW);
       digitalWrite(5, LOW);
       digitalWrite(6, LOW);      
