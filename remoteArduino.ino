@@ -97,27 +97,22 @@ void setup() {
   pinMode (A2, INPUT);
   digitalWrite (A2, HIGH);  // enable pull-up
 
-  // Set the output pins. These default to LOW so set high so they
-  // can be low active
-  digitalWrite (2, HIGH);
-  digitalWrite (3, HIGH);
-  digitalWrite (4, HIGH);
-  digitalWrite (5, HIGH);
-  digitalWrite (6, HIGH);
-  digitalWrite (7, HIGH);
-  
-  
-  
-  pinMode (2, OUTPUT);
-  pinMode (3, OUTPUT);
-  pinMode (4, OUTPUT);
-  pinMode (5, OUTPUT);
-  pinMode (6, OUTPUT);
-  pinMode (7, OUTPUT);
-  pinMode (8, OUTPUT);
-  digitalWrite (8, HIGH);
-  pinMode (9, OUTPUT);
+  // Set the output pins. These default to LOW so set HIGH any that
+  // need to be LOW active
+
+  pinMode (2, OUTPUT);          // Opto-U8
+  pinMode (3, OUTPUT);          // Opto-U7
+  pinMode (4, OUTPUT);          // J13 pin4
+  pinMode (5, OUTPUT);          // J13 pin3
+  pinMode (6, OUTPUT);          // J13 pin2
+  pinMode (7, OUTPUT);          // J13 pin1
+  pinMode (8, OUTPUT);          // J11 pin3
+  pinMode (9, OUTPUT);          // J11 pin2
   digitalWrite (9, HIGH);
+  pinMode (10, OUTPUT);         // J11 pin1
+  digitalWrite (10, HIGH);
+  pinMode (11, OUTPUT);         // Opto-U6
+  pinMode (12, OUTPUT);         // Opto-U5
 
 
   Serial.begin(115200);
@@ -149,10 +144,10 @@ void loop() {
         digitalWrite(LED, LOW);
         break;
       case CMD_RLY1_ON:
-        digitalWrite(8, LOW);  // J11 pin 3
+        digitalWrite(10, LOW);  // J11 pin 3
         break;
       case CMD_RLY1_OFF:
-        digitalWrite(8, HIGH);
+        digitalWrite(10, HIGH);
         break;
       case CMD_RLY2_ON:
         digitalWrite(9, LOW);  // J11 pin 2
