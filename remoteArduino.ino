@@ -27,7 +27,7 @@ boolean last_state = HIGH;
 char I2C_sendBuf[32];
 char I2C_recBuf[32];
 long CMD = 0;       // Commands received are placed in this variable
-long LAST_CMD = 0;  // The last command received is hels here
+long LAST_CMD = 0;  // The last command received is held here
 
 enum { // These commands come from tcp client via ESP01 I2C connection
   CMD_PWR_ON = 1, //Start the enum from 1
@@ -88,8 +88,8 @@ void setup() {
   pinMode(BUTTON, INPUT);
   digitalWrite(BUTTON, HIGH); //Set pullup
 
-  pinMode (2, INPUT);
-  digitalWrite (2, HIGH);  // enable pull-up
+ // pinMode (2, INPUT);
+ // digitalWrite (2, HIGH);  // enable pull-up
   pinMode (A0, INPUT);
   digitalWrite (A0, LOW);  // disable pull-up
   pinMode (A1, INPUT);
@@ -100,8 +100,8 @@ void setup() {
   // Set the output pins. These default to LOW so set HIGH any that
   // need to be LOW active
 
-  pinMode (2, OUTPUT);          // Opto-U8
-  pinMode (3, OUTPUT);          // Opto-U7
+  pinMode (2, OUTPUT);          // Opto-U7
+  pinMode (3, OUTPUT);          // Opto-U6
   pinMode (4, OUTPUT);          // J13 pin4
   pinMode (5, OUTPUT);          // J13 pin3
   pinMode (6, OUTPUT);          // J13 pin2
@@ -111,8 +111,8 @@ void setup() {
   digitalWrite (9, HIGH);
   pinMode (10, OUTPUT);         // J11 pin1
   digitalWrite (10, HIGH);
-  pinMode (11, OUTPUT);         // Opto-U6
-  pinMode (12, OUTPUT);         // Opto-U5
+  pinMode (11, OUTPUT);         // Opto-U5
+  pinMode (12, OUTPUT);         // Opto-U4
 
 
   Serial.begin(115200);
@@ -130,9 +130,10 @@ void setup() {
 // master on request
 void loop() {
 
-  if (CMD) {
+  if (CMD != LAST_CMD) {
+    Serial.print("@Main loop; CMD = "); Serial.println(CMD);
     LAST_CMD = CMD;
-    switch (LAST_CMD) {
+    switch (CMD) {
       case CMD_TUNE_DN:
         // Send a button press to autotuner
         Serial.print("Main loop, command received = ");  // debug
@@ -144,7 +145,7 @@ void loop() {
         digitalWrite(LED, LOW);
         break;
       case CMD_RLY1_ON:
-        digitalWrite(10, LOW);  // J11 pin 3
+        digitalWrite(10, LOW);  // J11 pin 1
         break;
       case CMD_RLY1_OFF:
         digitalWrite(10, HIGH);
@@ -156,10 +157,10 @@ void loop() {
         digitalWrite(9, HIGH);
         break;
       case CMD_RLY3_ON:
-        digitalWrite(2, HIGH);  // Opto-Coupler
+        digitalWrite(8, HIGH);  // J11 pin 3
         break;
       case CMD_RLY3_OFF:
-        digitalWrite(2, LOW);
+        digitalWrite(8, LOW);
         break;
       case CMD_RLY4_ON:
         digitalWrite(3, HIGH);  // Opto-Coupler
@@ -198,7 +199,7 @@ void loop() {
       digitalWrite(4, HIGH);
       break;
     }
-    if (LAST_CMD == CMD) CMD = 0; // Test to see if CMD changed while processing switch case.
+//    if (LAST_CMD == CMD) CMD = 0; // Test to see if CMD changed while processing switch case.
   }
   /*
   // Now poll all the inputs
@@ -230,18 +231,20 @@ void receiveEvent(int howMany)
 // The command is sent as a numeric string and is converted to a long.
 {
   char * pEnd;
-
+  Serial.print("@Slave:receiveEvent(), howMany = ");Serial.println(howMany);
   memset(I2C_recBuf, NULL, strlen(I2C_recBuf)); // Null the I2C Receive Buffer
   for (byte i = 0; i < howMany; i++)
   {
     I2C_recBuf[i] = Wire.read ();
+    Serial.print("@Slave:receiveEvent(), Loop I2C_recBuf = "); Serial.println(I2C_recBuf[i]);
   }  // end of for loop
+
   CMD = strtol(I2C_recBuf, &pEnd, 10);
 #ifdef _DEBUG  
-  Serial.print("@Slave:receiveEvent(), CMD = ");
-  Serial.println(CMD);
+  Serial.print("@Slave:receiveEvent(), CMD = "); Serial.println(CMD);
 //  Serial.print("@Slave:receiveEvent(), I2C_recBuf = ");
 //  Serial.println(I2C_recBuf);
+  Serial.println("-------------------------");
 #endif
 }
 
@@ -250,8 +253,7 @@ void requestEvent()
 // command to identify which info has been received by receiveEvent and
 // placed into the global "CMD" variable.
 {
-  //  Serial.print("@Slave:requestEvent(), CMD = ");
-  //  Serial.println(CMD, 10);
+    Serial.print("@Slave:requestEvent(), CMD = "); Serial.println(CMD, 10);
   switch (CMD)
   {
     case CMD_READ_A0: sendSensor(A0, _volts); break;  // send A0 value
