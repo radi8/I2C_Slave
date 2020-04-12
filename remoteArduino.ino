@@ -111,9 +111,10 @@ void setup() {
   digitalWrite (9, HIGH);
   pinMode (10, OUTPUT);         // J11 pin1
   digitalWrite (10, HIGH);
-  pinMode (11, OUTPUT);         // Opto-U5
-  pinMode (12, OUTPUT);         // Opto-U4
-
+  pinMode (11, INPUT);         // Opto-U5
+  pinMode (12, INPUT);         // Opto-U4
+  digitalWrite (11, HIGH);
+  digitalWrite (12, HIGH);
 
   Serial.begin(115200);
   Serial.println("Started slave at address 9");
@@ -139,10 +140,12 @@ void loop() {
         Serial.print("Main loop, command received = ");  // debug
         Serial.println(CMD, DEC);        // debug
         digitalWrite(LED, HIGH);
+        digitalWrite(2, HIGH);
         break;
       case CMD_TUNE_UP:
         // Send a button release to autotuner
         digitalWrite(LED, LOW);
+        digitalWrite(2, LOW);
         break;
       case CMD_RLY1_ON:
         digitalWrite(10, LOW);  // J11 pin 1
