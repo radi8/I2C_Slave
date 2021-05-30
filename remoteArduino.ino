@@ -1,23 +1,20 @@
 /**
+  remoteArduino Version 1.0.0 (c) 2021 Graeme Jury ZL2APV
 
-  Sample Multi Master I2C implementation.  Sends a button state over I2C to another
-  Arduino, which flashes an LED correspinding to button state.
+  This Arduino operates as an I2C slave to an ESP01 Master which in turn is a server for a
+  remote client running on a PC.Yhe remote client sends commands via the ESP01 via TCP/IP
+  wireless to switch relays which enable power to be applied to radio equipment connected
+  to the unit. The Arduino sends back an acknowledgement by reading toe relay port value.
 
-  Connections: Arduino analog pins 4 (sda) and 5 (scl) are connected between the two Arduinos,
-  with a 1k pullup resistor connected to each line.  Connect a push button between
-  digital pin 10 and ground, and an LED (with a resistor) to digital pin 9.
+  Connections: Arduino analog pins 4 (sda) and 5 (scl) are connected to the ESP01 I2C from the
+  gpio0 (sda) and gpio1 (scl) via a 3 volt to 5 volt level translator. A range of inputs/outputs
+  are provided with some being via optocouplers and others via switching transistors.
 
 */
 
 #include <Wire.h>
 
-#define _DEBUG
-#define LED 13
-#define A0 14
-#define A1 15
-#define A2 16
-#define TUNE_OUTPUT 13
-#define BUTTON 10
+#define _DEBUG // Comment this out on final compile
 
 #define I2CAddressESPWifi 9
 
@@ -27,7 +24,6 @@ boolean last_state = HIGH;
 char I2C_sendBuf[32];
 char I2C_recBuf[32];
 long CMD = 0;       // Commands received are placed in this variable
-long LAST_CMD = 0;  // The last command received is held here
 
 enum { // These commands come from tcp client via ESP01 I2C connection
   CMD_PWR_ON = 1, //Start the enum from 1
@@ -39,7 +35,7 @@ enum { // These commands come from tcp client via ESP01 I2C connection
   CMD_RLY3_ON,    // Linear
   CMD_RLY3_OFF,
   CMD_RLY4_ON,    // Tuner
-  CMD_RLY4_OFF,   
+  CMD_RLY4_OFF,
   CMD_TUNE_DN,
   CMD_TUNE_UP,
   CMD_ANT_1,    // No antenna selected
@@ -57,20 +53,6 @@ enum { // These commands come from tcp client via ESP01 I2C connection
   CMD_ID // Always keep this last
 };
 
-enum { // Send these to tcp client via ESP01
-  _pwrSwitch = CMD_ID + 1,
-  _tuneState,
-  _volts,
-  _amps,
-  _analog2,
-  _digital2,
-  _digital3,
-  _rly1,
-  _rly2,
-  _antenna,
-  _message
-};
-
 struct {
   uint8_t tunerState = 0;
   int A0_val = 0;
@@ -81,14 +63,9 @@ struct {
 } readings;
 
 void setup() {
-  pinMode(LED, OUTPUT);
-  digitalWrite(LED, LOW);
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
 
-  pinMode(BUTTON, INPUT);
-  digitalWrite(BUTTON, HIGH); //Set pullup
-
- // pinMode (2, INPUT);
- // digitalWrite (2, HIGH);  // enable pull-up
   pinMode (A0, INPUT);
   digitalWrite (A0, LOW);  // disable pull-up
   pinMode (A1, INPUT);
@@ -120,127 +97,47 @@ void setup() {
 
   Wire.begin(I2CAddressESPWifi); // Set up as slave
   Wire.onReceive(receiveEvent);// Registers a function to be called when a slave
-                               // device receives a transmission from a master.
+  // device receives a transmission from a master.
   Wire.onRequest(requestEvent);// Register a function to be called when a
-                               // master requests data from this slave device.
+  // master requests data from this slave device.
 }
 
-// We run through the loop checking if a command has been received and processing
-// if so, plus polling the inputs and recording their state so it can be sent to
-// master on request
-void loop() {
-
-  if (CMD != LAST_CMD) {
-    Serial.print("@Main loop; CMD = "); Serial.println(CMD);
-    LAST_CMD = CMD;
-    switch (CMD) {
-      case CMD_TUNE_DN:
-        // Send a button press to autotuner
-        Serial.print("Main loop, command received = ");  // debug
-        Serial.println(CMD, DEC);        // debug
-        digitalWrite(LED, HIGH);
-        digitalWrite(2, HIGH);
-        break;
-      case CMD_TUNE_UP:
-        // Send a button release to autotuner
-        digitalWrite(LED, LOW);
-        digitalWrite(2, LOW);
-        break;
-      case CMD_RLY1_ON:
-        digitalWrite(10, LOW);  // J11 pin 1
-        break;
-      case CMD_RLY1_OFF:
-        digitalWrite(10, HIGH);
-        break;
-      case CMD_RLY2_ON:
-        digitalWrite(9, LOW);  // J11 pin 2
-        break;
-      case CMD_RLY2_OFF:
-        digitalWrite(9, HIGH);
-        break;
-      case CMD_RLY3_ON:
-        digitalWrite(8, HIGH);  // J11 pin 3
-        break;
-      case CMD_RLY3_OFF:
-        digitalWrite(8, LOW);
-        break;
-      case CMD_RLY4_ON:
-        digitalWrite(3, HIGH);  // Opto-Coupler
-        break;
-      case CMD_RLY4_OFF:
-        digitalWrite(3, LOW);
-        break;
-      case CMD_ANT_1: // No antenna selected
-      digitalWrite(4, LOW); // J13 - 4
-      digitalWrite(5, LOW); // J13 - 3
-      digitalWrite(6, LOW); // J13 - 2
-      digitalWrite(7, LOW); // J13 - 1
-      break;
-    case CMD_ANT_2:
-      digitalWrite(4, LOW);
-      digitalWrite(5, HIGH); // RLC
-      digitalWrite(6, LOW);
-      digitalWrite(7, LOW);
-      break;
-    case CMD_ANT_3:
-      digitalWrite(4, LOW);
-      digitalWrite(5, LOW);
-      digitalWrite(7, LOW);
-      digitalWrite(6, HIGH); // RLA
-      break;
-    case CMD_ANT_4:
-      digitalWrite(4, LOW);
-      digitalWrite(6, LOW);
-      digitalWrite(7, HIGH); // RLB
-      digitalWrite(5, HIGH); // RLA
-      break;
-    }
-//    if (LAST_CMD == CMD) CMD = 0; // Test to see if CMD changed while processing switch case.
-  }
-  /*
-  // Now poll all the inputs
-  readings.A0_val = analogRead(A0);
-  delay(5);
-  readings.A0_val = analogRead(A1);
-  delay(5);
-  readings.A0_val = analogRead(A2);
-  readings.D2_val = digitalRead(2);
-  readings.D3_val = digitalRead(3);
-  sendSensor(A0, _volts);
-  sendSensor(A1, _amps);
-  */
-//  sendStatus();
+void loop()
+// There is nothing in the loop as all data received is via an interrupt function.
+{
   delay(1);
 }
 
 /************************** I2C subroutines **************************/
 
 // The slave is listening for commands from the master. Some commands are
-// for the slave to perform a task like set a digital output and these are
-// dealt with in the main loop. Other commands are for information to be
-// sent back to the master and these are dealt with in requestEvent().
-// The receiveEvent captures the sent command in CMD for processing by the
-// main loop or the requestEvent() interrupt driven subroutine
+// for the slave to perform a task like set a digital output and other
+// commands are for information to be sent back to the master.
+// The receiveEvent captures the sent command and places it in the 'CMD'
+// global variable for subsequent processing. Every command received is
+// expected to generate an acknowledgement and this is retrieved by the master
+// sending a requestEvent() serviced by the interrupt driven subroutine.
 
 void receiveEvent(int howMany)
 // called by I2C interrupt service routine when incoming data arrives.
 // The command is sent as a numeric string and is converted to a long.
 {
   char * pEnd;
-  Serial.print("@Slave:receiveEvent(), howMany = ");Serial.println(howMany);
+
   memset(I2C_recBuf, NULL, strlen(I2C_recBuf)); // Null the I2C Receive Buffer
   for (byte i = 0; i < howMany; i++)
   {
     I2C_recBuf[i] = Wire.read ();
-    Serial.print("@Slave:receiveEvent(), Loop I2C_recBuf = "); Serial.println(I2C_recBuf[i]);
   }  // end of for loop
-
+#ifdef _DEBUG
+  Serial.print("@Slave:receiveEvent(), howMany = "); Serial.print(howMany);
+#endif
+#ifdef _DEBUG
+  Serial.print("; & Loop I2C_recBuf = "); Serial.println(I2C_recBuf);
+#endif
   CMD = strtol(I2C_recBuf, &pEnd, 10);
-#ifdef _DEBUG  
-  Serial.print("@Slave:receiveEvent(), CMD = "); Serial.println(CMD);
-//  Serial.print("@Slave:receiveEvent(), I2C_recBuf = ");
-//  Serial.println(I2C_recBuf);
-  Serial.println("-------------------------");
+#ifdef _DEBUG
+  Serial.print("@Slave:receiveEvent(), CMD = "); Serial.println(CMD); Serial.println();
 #endif
 }
 
@@ -249,56 +146,138 @@ void requestEvent()
 // command to identify which info has been received by receiveEvent and
 // placed into the global "CMD" variable.
 {
-    Serial.print("@Slave:requestEvent(), CMD = "); Serial.println(CMD, 10);
+  Serial.print("@Slave::requestEvent(), CMD = "); Serial.print(CMD, 10);
   switch (CMD)
   {
-    case CMD_READ_A0: sendSensor(A0, _volts); break;  // send A0 value
-    case CMD_READ_A1: sendSensor(A1, _amps); break;  // send A1 value
-    case CMD_READ_A2: sendSensor(A2, _analog2); break;  // send A2 value
-    case CMD_READ_D2: sendSensor(2, _digital2); break;   // send D2 value
-    case CMD_READ_D3: sendSensor(3, _digital3); break;   // send D3 value
-//    case CMD_STATUS: sendStatus();
-    case CMD_ID: {
-        memset(I2C_sendBuf, NULL, strlen(I2C_sendBuf)); // Clear the I2C Send Buffer
-//        Serial.print("I2C_sendBuf[20] at start =  "); // debug
-//        Serial.println(I2C_sendBuf[20], 16); // debug
-        sprintf(I2C_sendBuf, "%d Slave address = 9", _message);
-//        strcpy(I2C_sendBuf, " Slave address = 9");
-#ifdef _DEBUG
-  Serial.print("@Slave::requestEvent() I2C_sendBuf = ");
-  Serial.println(I2C_sendBuf);
-#endif        
-    /*
-        int len = strlen(I2C_sendBuf);
-        I2C_sendBuf[len] = '\0';
-        for (byte i = 0; i <= len; i++) {
-          Wire.write(I2C_sendBuf[i]); // Chug out 1 character at a time
-        }  // end of for loop
-        /*    Wire.write(I2C_sendBuf);
-              Serial.print("@Slave:requestEvent(), Response sent = ");
-              Serial.println(I2C_sendBuf); */
-          Wire.write(I2C_sendBuf);
-        break;   // send our ID
-      }
+    case CMD_PWR_ON:
+      sendSensor(55, CMD_PWR_ON);
+      break;
+    case CMD_PWR_OFF:
+      sendSensor(55, CMD_PWR_OFF);
+      break;
+    case CMD_RLY1_ON:
+      digitalWrite(10, LOW);  // J11 pin 1; CMD = 3
+      sendSensor(10, CMD_RLY1_ON);
+      break;
+    case CMD_RLY1_OFF:
+      digitalWrite(10, HIGH); // CMD = 4
+      sendSensor(10, CMD_RLY1_OFF);
+      break;
+    case CMD_RLY2_ON:
+      digitalWrite(9, LOW);  // J11 pin 2; CMD = 5
+      sendSensor(9, CMD_RLY2_ON);
+      break;
+    case CMD_RLY2_OFF:
+      digitalWrite(9, HIGH); // CMD = 6
+      sendSensor(9, CMD_RLY2_OFF);
+      break;
+    case CMD_RLY3_ON:
+      digitalWrite(8, HIGH);  // J11 pin 3; CMD = 7
+      sendSensor(8, CMD_RLY3_ON);
+      break;
+    case CMD_RLY3_OFF:
+      digitalWrite(8, LOW); // CMD = 8
+      sendSensor(8, CMD_RLY3_OFF);
+      break;
+    case CMD_RLY4_ON:
+      digitalWrite(3, HIGH);  // Opto-Coupler
+      sendSensor(3, CMD_RLY4_ON);
+      break;
+    case CMD_RLY4_OFF:
+      digitalWrite(3, LOW);
+      sendSensor(3, CMD_RLY4_OFF);
+      break;
+    case CMD_TUNE_DN:
+      // Send a button press to autotuner
+      Serial.print("@requestEvent: command received = ");  // debug
+      Serial.println(CMD, DEC);        // debug
+      digitalWrite(LED_BUILTIN, HIGH);
+      digitalWrite(2, HIGH);
+      sendSensor(2, CMD_TUNE_DN);
+      break;
+    case CMD_TUNE_UP:
+      // Send a button release to autotuner
+      digitalWrite(LED_BUILTIN, LOW);
+      digitalWrite(2, LOW);
+      sendSensor(2, CMD_TUNE_UP);
+      break;
+    case CMD_ANT_1: // No antenna selected
+      digitalWrite(4, LOW); // J13 - 4
+      digitalWrite(5, LOW); // J13 - 3
+      digitalWrite(6, LOW); // J13 - 2
+      digitalWrite(7, LOW); // J13 - 1
+      sendSensor(4, CMD_ANT_1);
+      break;
+    case CMD_ANT_2:
+      digitalWrite(4, LOW);
+      digitalWrite(5, HIGH); // RLC
+      digitalWrite(6, LOW);
+      digitalWrite(7, LOW);
+      sendSensor(5, CMD_ANT_2);
+      break;
+    case CMD_ANT_3:
+      digitalWrite(4, LOW);
+      digitalWrite(5, LOW);
+      digitalWrite(7, LOW);
+      digitalWrite(6, HIGH); // RLA
+      sendSensor(6, CMD_ANT_3);
+      break;
+    case CMD_ANT_4:
+      digitalWrite(4, LOW);
+      digitalWrite(6, LOW);
+      digitalWrite(7, HIGH); // RLB
+      digitalWrite(5, HIGH); // RLA
+      sendSensor(7, CMD_ANT_4); // Only use 1 of the 2 selected relays for response
+      break;
+    case CMD_READ_A0: sendSensor(A0, CMD_READ_A0); break;  // send A0 value
+    case CMD_READ_A1: sendSensor(A1, CMD_READ_A1); break;  // send A1 value
+    case CMD_READ_A2: sendSensor(A2, CMD_READ_A2); break;  // send A2 value
+    case CMD_READ_D2: sendSensor(2, CMD_READ_D2); break;   // send D2 value
+    case CMD_READ_D3: sendSensor(3, CMD_READ_D3); break;   // send D3 value
+    case CMD_SET_LED_HI:
+      digitalWrite(LED_BUILTIN, HIGH);  // J11 pin 2; CMD = 5
+      sendSensor(LED_BUILTIN, CMD_SET_LED_HI);
+      break;
+    case CMD_SET_LED_LO:
+      digitalWrite(LED_BUILTIN, LOW);  // J11 pin 2; CMD = 5
+      sendSensor(LED_BUILTIN, CMD_SET_LED_LO);
+      break;
+    case CMD_STATUS:
+      sendSensor(55, CMD_STATUS);
+      break;
+    case CMD_ID:
+      sendSensor(55, CMD_ID);
+      break;
   }  // end of switch
+  
+#ifdef _DEBUG
+  Serial.print(" & I2C_sendBuf = ");
+  Serial.println(I2C_sendBuf);
+  Serial.println("-------------------------");
+#endif
   CMD = 0;
 }
 
-void sendSensor (const byte which, uint8_t cmd)
-// The integer value of the analog port is converted to a string and sent.
+void sendSensor (int myPin, uint8_t cmd)
+// 'int myPin' refers to the port affected by the command. The integer value of
+// the port is read and converted to a string to be sent to the remote client.
 {
-  int val = 0;
+  int cmdVal = 0;
   uint8_t len;
 
-  if(which < A0) {
-    val = digitalRead (which);
+  if (myPin == 55) {
+    cmdVal = 9;
   } else {
-    val = analogRead (which);
+    if ((myPin >= A0) && (myPin <= A2)) {
+      cmdVal = analogRead (myPin);
+    } else {
+      cmdVal = digitalRead (myPin);
+    }
   }
   memset(I2C_sendBuf, '\0', 32); // Clear the I2C Send Buffer
-  sprintf(I2C_sendBuf, "%d %d", cmd, val);
+  sprintf(I2C_sendBuf, "%d %d", cmd, cmdVal);
   len = strlen(I2C_sendBuf);
-  
+
   I2C_sendBuf[len] = '\0';
   for (byte i = 0; i <= len; i++)
   {
@@ -306,12 +285,12 @@ void sendSensor (const byte which, uint8_t cmd)
   }  // end of for loop
 
 
-//  Wire.write(I2C_sendBuf);
-//  Serial.println(I2C_sendBuf); // debug
+  //  Wire.write(I2C_sendBuf);
+  //  Serial.println(I2C_sendBuf); // debug
 }  // end of sendSensor
 /*
-void sendStatus()
-{
+  void sendStatus()
+  {
   int x;
 
   memset(I2C_sendBuf, '\0', 32); // Clear the I2C Send Buffer
@@ -326,5 +305,5 @@ void sendStatus()
   x = digitalRead(3); // send D2 value
   sprintf(I2C_sendBuf, "%d %d", _digital3, x);
   Wire.write(I2C_sendBuf);
-}
+  }
 */
