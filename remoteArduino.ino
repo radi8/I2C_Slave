@@ -38,15 +38,15 @@ enum { // These commands come from tcp client via ESP01 I2C connection
   CMD_RLY4_OFF,
   CMD_TUNE_DN,
   CMD_TUNE_UP,
-  CMD_ANT_1,    // No antenna selected
-  CMD_ANT_2,
-  CMD_ANT_3,
-  CMD_ANT_4,
+  CMD_ANT_1,      // No antenna selected (Dummy Load)
+  CMD_ANT_2,      // Wire
+  CMD_ANT_3,      // Mag Loop
+  CMD_ANT_4,      // LoG
   CMD_READ_A0,    // Shack voltage
   CMD_READ_A1,
   CMD_READ_A2,
-  CMD_READ_D2,    // Digital input via opto-coupler
-  CMD_READ_D3,
+  CMD_READ_D11,    // Digital input via opto-coupler
+  CMD_READ_D12,
   CMD_SET_LED_HI,
   CMD_SET_LED_LO,
   CMD_STATUS,
@@ -76,21 +76,21 @@ void setup() {
   // Set the output pins. These default to LOW so set HIGH any that
   // need to be LOW active
 
-  pinMode (2, OUTPUT);          // Opto-U7
-  pinMode (3, OUTPUT);          // Opto-U6
-  pinMode (4, OUTPUT);          // J13 pin4
-  pinMode (5, OUTPUT);          // J13 pin3
-  pinMode (6, OUTPUT);          // J13 pin2
-  pinMode (7, OUTPUT);          // J13 pin1
-  pinMode (8, OUTPUT);          // J11 pin3
-  pinMode (9, OUTPUT);          // J11 pin2
+  pinMode (2, OUTPUT);        // Opto-U7
+  pinMode (3, OUTPUT);        // Opto-U6
+  pinMode (4, OUTPUT);        // J13 pin4
+  pinMode (5, OUTPUT);        // J13 pin3
+  pinMode (6, OUTPUT);        // J13 pin2
+  pinMode (7, OUTPUT);        // J13 pin1
+  pinMode (8, OUTPUT);        // J11 pin3
+  pinMode (9, OUTPUT);        // J11 pin2
   digitalWrite (9, HIGH);
-  pinMode (10, OUTPUT);         // J11 pin1
+  pinMode (10, OUTPUT);       // J11 pin1
   digitalWrite (10, HIGH);
-  pinMode (11, INPUT);         // Opto-U5
-  pinMode (12, INPUT);         // Opto-U4
-  digitalWrite (11, HIGH);
-  digitalWrite (12, HIGH);
+  pinMode (11, INPUT);        // Opto-U5
+  pinMode (12, INPUT);        // Opto-U4
+  digitalWrite (11, HIGH);    // Enable pullup
+  digitalWrite (12, HIGH);    // Enable pullup
 
   Serial.begin(115200);
   Serial.println("Started slave at address 9");
@@ -189,8 +189,6 @@ void requestEvent()
       break;
     case CMD_TUNE_DN:
       // Send a button press to autotuner
-      Serial.print("@requestEvent: command received = ");  // debug
-      Serial.println(CMD, DEC);        // debug
       digitalWrite(LED_BUILTIN, HIGH);
       digitalWrite(2, HIGH);
       sendSensor(2, CMD_TUNE_DN);
@@ -232,14 +230,14 @@ void requestEvent()
     case CMD_READ_A0: sendSensor(A0, CMD_READ_A0); break;  // send A0 value
     case CMD_READ_A1: sendSensor(A1, CMD_READ_A1); break;  // send A1 value
     case CMD_READ_A2: sendSensor(A2, CMD_READ_A2); break;  // send A2 value
-    case CMD_READ_D2: sendSensor(2, CMD_READ_D2); break;   // send D2 value
-    case CMD_READ_D3: sendSensor(3, CMD_READ_D3); break;   // send D3 value
+    case CMD_READ_D11: sendSensor(11, CMD_READ_D11); break;   // get D11 value
+    case CMD_READ_D12: sendSensor(12, CMD_READ_D12); break;   // get D12 value
     case CMD_SET_LED_HI:
-      digitalWrite(LED_BUILTIN, HIGH);  // J11 pin 2; CMD = 5
+      digitalWrite(LED_BUILTIN, HIGH);  // J11 pin 2; CMD = 22
       sendSensor(LED_BUILTIN, CMD_SET_LED_HI);
       break;
     case CMD_SET_LED_LO:
-      digitalWrite(LED_BUILTIN, LOW);  // J11 pin 2; CMD = 5
+      digitalWrite(LED_BUILTIN, LOW);  // J11 pin 2; CMD = 22
       sendSensor(LED_BUILTIN, CMD_SET_LED_LO);
       break;
     case CMD_STATUS:
@@ -268,7 +266,7 @@ void sendSensor (int myPin, uint8_t cmd)
   if (myPin == 55) {
     cmdVal = 9;
   } else {
-    if ((myPin >= A0) && (myPin <= A2)) {
+    if (myPin >= A0 && myPin < A4) {
       cmdVal = analogRead (myPin);
     } else {
       cmdVal = digitalRead (myPin);
@@ -283,27 +281,4 @@ void sendSensor (int myPin, uint8_t cmd)
   {
     Wire.write(I2C_sendBuf[i]); // Chug out one char at a time.
   }  // end of for loop
-
-
-  //  Wire.write(I2C_sendBuf);
-  //  Serial.println(I2C_sendBuf); // debug
 }  // end of sendSensor
-/*
-  void sendStatus()
-  {
-  int x;
-
-  memset(I2C_sendBuf, '\0', 32); // Clear the I2C Send Buffer
-  sendSensor(analogRead(A0), _volts); // send A0 value
-  delay(5);
-  sendSensor(analogRead(A1), _amps); // send A1 value
-  delay(5);
-  sendSensor(analogRead(A2), _analog2); // send A2 value
-  x = digitalRead(2); // send D2 value
-  sprintf(I2C_sendBuf, "%d %d", _digital2, x);
-  Wire.write(I2C_sendBuf);
-  x = digitalRead(3); // send D2 value
-  sprintf(I2C_sendBuf, "%d %d", _digital3, x);
-  Wire.write(I2C_sendBuf);
-  }
-*/
